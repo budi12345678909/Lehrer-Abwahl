@@ -1,1 +1,154 @@
-<html></html>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Lehrer Abwahl</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h3 {
+    margin-top: 30px;
+}
+
+.teachers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 40px;
+}
+
+.teacher {
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+button {
+    padding: 8px 15px;
+    border: none;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.good {
+    background-color: green;
+    color: white;
+}
+
+.bad {
+    background-color: red;
+    color: white;
+}
+
+.middle {
+    background-color: rgb(255, 220, 24);
+    color: black;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#res {
+    margin-top: 20px;
+    font-size: 18px;
+    color: green;
+}
+</style>
+</head>
+
+<body>
+
+<h3>Lehrer Abwahl</h3>
+<h4>Wählt welchen Lehrer der beste Lehrer aus der Klasse 6a ist.</h4>
+<h4>Wählt welcher Lehrer der schlechteste Lehrer aus der Klasse 6a ist.</h4>
+<h4>Für jeden Lehrer dürft ihr nur einen Kasten drücken.</h4>
+
+<p id="res"></p>
+
+<div class="teachers" id="teacherContainer"></div>
+
+<script>
+
+// Teacher list
+const teachers = [
+    "Fr. Duddey",
+    "Hr. Hees",
+    "Hr. Baman",
+    "Fr. Schwarzer",
+    "Fr. Geier",
+    "Hr. Koob",
+    "Hr. Kaiduk",
+    "Fr. Ileva"
+];
+
+const container = document.getElementById("teacherContainer");
+
+// Generate teacher cards
+teachers.forEach(name => {
+    const div = document.createElement("div");
+    div.className = "teacher";
+    div.innerHTML = `
+        <h4>${name}</h4>
+        <button class="good">GUT</button>
+        <button class="bad">SCHLECHT</button>
+        <button class="middle">MITTEL</button>
+    `;
+    container.appendChild(div);
+});
+
+// Send vote to backend
+function sendVote(teacher, rating) {
+    fetch("http://localhost:2000/vote", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ teacher, rating })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("res").textContent = data.message;
+    })
+    .catch(err => {
+        console.error("Error:", err);
+    });
+}
+
+// One event listener for all buttons
+document.addEventListener("click", function(e) {
+    if (e.target.tagName === "BUTTON") {
+
+        if (localStorage.getItem("voted-" + e.target.closest(".teacher").querySelector("h4").textContent)) {
+            alert("Du hast diesen Lehrer bereits bewertet!");
+            return;
+        }
+
+        const teacher = e.target.closest(".teacher").querySelector("h4").textContent;
+        const rating = e.target.textContent;
+
+        sendVote(teacher, rating);
+
+        // Save vote locally
+        localStorage.setItem("voted-" + teacher, "true");
+
+        // Disable buttons for this teacher
+        const buttons = e.target.closest(".teacher").querySelectorAll("button");
+        buttons.forEach(btn => btn.disabled = true);
+    }
+});
+
+</script>
+
+</body>
+</html>
